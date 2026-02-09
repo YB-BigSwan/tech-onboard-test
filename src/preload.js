@@ -5,6 +5,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   checkGit: () => ipcRenderer.invoke('check-git'),
   installGit: () => ipcRenderer.invoke('install-git'),
+  checkBrew: () => ipcRenderer.invoke('check-brew'),
+  installBrew: () => ipcRenderer.invoke('install-brew'),
   runBootstrap: (repoUrl) => ipcRenderer.invoke('run-bootstrap', repoUrl),
   onLogOutput: (callback) => ipcRenderer.on('log-output', (event, data) => callback(data))
 });

@@ -109,22 +109,46 @@ startButton.addEventListener('click', async () => {
     const gitCheck = await window.electronAPI.checkGit();
     
     if (!gitCheck.installed) {
-      showStatus('Git not installed. Installing git automatically...', 'info');
-      appendLog('Git is not installed. Installing now...\n');
+      showStatus('Git not installed. Installing Xcode Command Line Tools...', 'info');
+      appendLog('Git is not installed. Installing Xcode Command Line Tools...\n\n');
       
       try {
-        await window.electronAPI.installGit();
-        appendLog('✓ Git installed successfully\n\n');
+        const installResult = await window.electronAPI.installGit();
+        
+        if (installResult.needsRestart) {
+          showStatus('Please complete the installation and restart this app', 'info');
+          appendLog('⚠️  Installation in progress\n');
+          appendLog('Once the installation completes, please restart this app and try again.\n');
+          progressBar.style.width = '0%';
+          progressText.textContent = 'Waiting for installation...';
+          return;
+        } else {
+          appendLog('✓ Xcode Command Line Tools installed\n\n');
+        }
       } catch (installError) {
-        showStatus('Failed to install git. Please install manually.', 'error');
-        appendLog(`ERROR: Failed to install git: ${installError.message}\n`);
-        appendLog('Please install git manually from: https://git-scm.com/downloads\n');
+        showStatus('Failed to install Command Line Tools', 'error');
+        appendLog(`ERROR: ${installError.message}\n`);
+        appendLog('\nPlease install manually:\n');
+        appendLog('1. Open Terminal\n');
+        appendLog('2. Run: xcode-select --install\n');
+        appendLog('3. Restart this app after installation\n');
         progressBar.style.width = '0%';
-        progressText.textContent = 'Failed - Could not install git';
+        progressText.textContent = 'Installation required';
         return;
       }
     } else {
       appendLog('✓ Git is installed\n\n');
+    }
+    
+    // Check if Homebrew is installed
+    appendLog('Checking for Homebrew installation...\n');
+    const brewCheck = await window.electronAPI.checkBrew();
+    
+    if (!brewCheck.installed) {
+      appendLog('Homebrew is not installed.\n');
+      appendLog('The bootstrap script will install it automatically.\n\n');
+    } else {
+      appendLog('✓ Homebrew is installed\n\n');
     }
     
     updateProgress(1);
