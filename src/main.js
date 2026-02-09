@@ -59,6 +59,78 @@ ipcMain.handle('check-git', async () => {
   });
 });
 
+// Install git using Homebrew
+ipcMain.handle('install-git', async () => {
+  mainWindow.webContents.send('log-output', 'Git not found. Installing git...\n');
+  
+  return new Promise((resolve, reject) => {
+    // First check if Homebrew is installed
+    const brewCheck = spawn('brew', ['--version']);
+    
+    brewCheck.on('error', () => {
+      // Homebrew not installed, install it first
+      mainWindow.webContents.send('log-output', 'Homebrew not found. Installing Homebrew first...\n');
+      
+      const brewInstall = spawn('/bin/bash', ['-c', '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'], {
+        env: { ...process.env, NONINTERACTIVE: '1' },
+        shell: true
+      });
+      
+      brewInstall.stdout.on('data', (data) => {
+        mainWindow.webContents.send('log-output', data.toString());
+      });
+      
+      brewInstall.stderr.on('data', (data) => {
+        mainWindow.webContents.send('log-output', data.toString());
+      });
+      
+      brewInstall.on('close', (code) => {
+        if (code === 0) {
+          // Now install git
+          installGitWithBrew(resolve, reject);
+        } else {
+          reject(new Error('Failed to install Homebrew'));
+        }
+      });
+    });
+    
+    brewCheck.on('close', (code) => {
+      if (code === 0) {
+        // Homebrew exists, just install git
+        installGitWithBrew(resolve, reject);
+      }
+    });
+  });
+});
+
+// Helper function to install git with brew
+function installGitWithBrew(resolve, reject) {
+  mainWindow.webContents.send('log-output', 'Installing git via Homebrew...\n');
+  
+  const gitInstall = spawn('brew', ['install', 'git']);
+  
+  gitInstall.stdout.on('data', (data) => {
+    mainWindow.webContents.send('log-output', data.toString());
+  });
+  
+  gitInstall.stderr.on('data', (data) => {
+    mainWindow.webContents.send('log-output', data.toString());
+  });
+  
+  gitInstall.on('close', (code) => {
+    if (code === 0) {
+      mainWindow.webContents.send('log-output', '✓ Git installed successfully\n\n');
+      resolve({ success: true, message: 'Git installed successfully' });
+    } else {
+      reject(new Error('Failed to install git'));
+    }
+  });
+  
+  gitInstall.on('error', (error) => {
+    reject(error);
+  });
+}
+
 // Clone repo and run bootstrap script
 ipcMain.handle('run-bootstrap', async (event, repoUrl) => {
   const tempDir = path.join(os.tmpdir(), `bootstrap-${Date.now()}`);

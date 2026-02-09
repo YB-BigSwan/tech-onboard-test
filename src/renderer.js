@@ -109,15 +109,24 @@ startButton.addEventListener('click', async () => {
     const gitCheck = await window.electronAPI.checkGit();
     
     if (!gitCheck.installed) {
-      showStatus('Git is not installed. Please install git first.', 'error');
-      appendLog('ERROR: Git is not installed on this system.\n');
-      appendLog('Please install git from: https://git-scm.com/downloads\n');
-      progressBar.style.width = '0%';
-      progressText.textContent = 'Failed - Git not installed';
-      return;
+      showStatus('Git not installed. Installing git automatically...', 'info');
+      appendLog('Git is not installed. Installing now...\n');
+      
+      try {
+        await window.electronAPI.installGit();
+        appendLog('✓ Git installed successfully\n\n');
+      } catch (installError) {
+        showStatus('Failed to install git. Please install manually.', 'error');
+        appendLog(`ERROR: Failed to install git: ${installError.message}\n`);
+        appendLog('Please install git manually from: https://git-scm.com/downloads\n');
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Failed - Could not install git';
+        return;
+      }
+    } else {
+      appendLog('✓ Git is installed\n\n');
     }
     
-    appendLog('✓ Git is installed\n\n');
     updateProgress(1);
     
     // Run bootstrap
